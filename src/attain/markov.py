@@ -21,31 +21,33 @@ class MarkovChain:
         return len(self._matrix)
 
     def to_csv(self, filename):
-        # FIXME: Revisit this.
-        # with open(filename, "w") as raw_file:
-        #     writer = csv.writer(raw_file)
-        #     writer.writerow([""] + [str(state) for state in self._states])
-        #
-        #     for offset, row in enumerate(self._transitions):
-        #         writer.writerow([self._states[offset]] + [column for column in row])
-        raise NotImplementedError("Revising during alpha.")
+        with open(filename, "w") as raw_file:
+            writer = csv.writer(raw_file)
+            writer.writerow([""] + [state for state in self._matrix.names])
+
+            for state in self._matrix.names:
+                writer.writerow([state] + self._matrix.get_row(state))
 
     @classmethod
     def from_csv(cls, filename):
-        # FIXME: Revisit this.
-        # mc = cls()
-        #
-        # with open(filename, "r") as raw_file:
-        #     reader = csv.reader(raw_file)
-        #     mc._states = next(reader)
-        #
-        #     for offset, row in enumerate(reader):
-        #         # FIXME: This won't work in the sparse world.
-        #         # mc._transitions.append([float(val) for val in row.strip().split(",")])
-        #         pass
-        #
-        # return mc
-        raise NotImplementedError("Revising during alpha.")
+        mc = cls()
+
+        with open(filename, "r") as raw_file:
+            reader = csv.reader(raw_file)
+            headers = next(reader)
+            # Skip the blank space in the top-left.
+            names = headers[1:]
+
+            for row in reader:
+                y_name = row[0]
+
+                for offset, value in enumerate(row[1:]):
+                    value = float(value)
+
+                    if value != mc._matrix._default:
+                        mc._matrix.set(names[offset], y_name, value)
+
+        return mc
 
     def train(self, seq):
         last_state = None
