@@ -1,6 +1,6 @@
 [project]
 name = "attain"
-version = "1.0.0-alpha"
+version = "1.0.0"
 description = "A little Markov Chain library."
 authors = [
     {name = "Daniel Lindsley", email = "daniel@toastdriven.com"},
