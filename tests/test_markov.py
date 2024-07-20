@@ -230,3 +230,39 @@ def test_from_csv(small_corpus, data_dir):
     assert mc.random_state() == "hello"
 
     shutil.rmtree(data_dir.as_posix(), ignore_errors=True)
+
+
+def test_json_round_trip(small_corpus, data_dir):
+    mc = markov.MarkovChain()
+    mc.train(small_corpus)
+
+    json_path = data_dir / "transitions.json"
+
+    shutil.rmtree(data_dir.as_posix(), ignore_errors=True)
+    data_dir.mkdir(parents=True, exist_ok=True)
+    assert json_path.exists() == False
+
+    mc.to_json(json_path.as_posix())
+
+    assert json_path.exists()
+
+    new_mc = markov.MarkovChain.from_json(json_path.as_posix())
+    assert len(new_mc) == 16
+    assert "hello" in new_mc
+    assert "world" in new_mc
+    assert "kitty" in new_mc
+
+    # Reach in a little, just to make sure things look right.
+    assert new_mc._matrix._data["world"] == {
+        2: 0.045454545454545456,
+    }
+    assert new_mc._matrix._data["hello"] == {
+        0: 0.045454545454545456,
+        3: 0.045454545454545456,
+        11: 0.045454545454545456,
+    }
+    assert new_mc._matrix._data["to"] == {
+        4: 0.09090909090909091,
+    }
+
+    shutil.rmtree(data_dir.as_posix(), ignore_errors=True)
