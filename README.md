@@ -5,7 +5,7 @@ A little Markov Chain library, for funsies.
 
 ## Usage
 
-```
+```python
 >>> import attain
 >>> mc = attain.MarkovChain()
 
@@ -35,7 +35,7 @@ A little Markov Chain library, for funsies.
 
 ## Tests
 
-```
+```shell
 $ git clone https://github.com/toastdriven/attain.git
 $ cd attain
 
