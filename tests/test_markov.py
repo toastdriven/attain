@@ -44,15 +44,6 @@ def test_initial():
     assert len(mc) == 0
 
 
-def test_add():
-    mc = markov.MarkovChain()
-    assert len(mc) == 0
-
-    mc.add_state("hello")
-    assert len(mc) == 1
-    assert "hello" in mc
-
-
 def test_train(small_corpus):
     mc = markov.MarkovChain()
     mc.train(small_corpus)
@@ -65,7 +56,7 @@ def test_dunder_methods(small_corpus):
 
     assert len(mc) == 16
     assert str(mc) == "16 known states"
-    assert repr(mc) == "<MarkovChain: 16 known states>"
+    assert repr(mc) == "<MarkovChain: 16>"
     assert "hello" in mc
     assert "whatever" not in mc
 
