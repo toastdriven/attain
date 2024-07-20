@@ -6,20 +6,19 @@ from . import matrix
 
 class MarkovChain:
     def __init__(self):
-        self._states = []
-        self._transitions = []
+        self._matrix = matrix.SparseMatrix()
 
     def __str__(self):
         return f"{len(self)} known states"
 
     def __repr__(self):
-        return f"<MarkovChain: {str(self)}>"
+        return f"<MarkovChain: {len(self)}>"
 
     def __contains__(self, value):
-        return value in self._states
+        return value in self._matrix
 
     def __len__(self):
-        return len(self._states)
+        return len(self._matrix)
 
     def to_csv(self, filename):
         # FIXME: Revisit this.
@@ -48,53 +47,29 @@ class MarkovChain:
         # return mc
         raise NotImplementedError("Revising during alpha.")
 
-    def add_state(self, state, default_value=0.0):
-        new_size = len(self) + 1
-
-        # Insert into the "headers".
-        self._states.append(state)
-
-        # Extend all the rows by 1 for the new state.
-        for row in self._transitions:
-            row.append(default_value)
-
-        # And finally add on a new row for the new state.
-        new_row = []
-
-        for _ in range(new_size):
-            new_row.append(default_value)
-
-        self._transitions.append(new_row)
-
     def train(self, seq):
         last_state = None
         total_count = len(seq)
         incr_by = 1 / (total_count - 1)
 
         for current_state in seq:
-            if current_state not in self._states:
-                self.add_state(current_state)
-
             # Special case for the first state. Nothing to update.
             if last_state is None:
                 last_state = current_state
                 continue
 
             # Increment the correct transition.
-            row_offset = self._get_state_offset(last_state)
-            column_offset = self._get_state_offset(current_state)
-            self._transitions[row_offset][column_offset] = (
-                self._transitions[row_offset][column_offset] + incr_by
-            )
+            current_value = self._matrix.get(current_state, last_state)
+            self._matrix.set(current_state, last_state, current_value + incr_by)
 
             # Finally, swap the current into the last state.
             last_state = current_state
 
     def random_state(self):
-        return random.choice(self._states)
+        return random.choice(self._matrix.names)
 
     def _get_state_offset(self, state):
-        return self._states.index(state)
+        return self._matrix.x_offset(state)
 
     def create_transition_choices(self, transitions):
         choices = []
@@ -117,14 +92,14 @@ class MarkovChain:
             last_state = states[0]
 
         for _ in range(length - 1):
-            row_offset = self._get_state_offset(last_state)
-            choices = self.create_transition_choices(self._transitions[row_offset])
+            choices = self.create_transition_choices(self._matrix.get_row(last_state))
 
             while len(choices) <= 0:
-                new_offset = self._get_state_offset(self.random_state())
-                choices = self.create_transition_choices(self._transitions[new_offset])
+                choices = self.create_transition_choices(
+                    self._matrix.get_row(self.random_state())
+                )
 
-            choice = self._states[random.choice(choices)]
+            choice = self._matrix.names[random.choice(choices)]
             states.append(choice)
             last_state = choice
 
