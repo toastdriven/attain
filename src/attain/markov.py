@@ -7,6 +7,26 @@ from . import matrix
 
 
 class MarkovChain:
+    """
+    An object for training/generating Markov Chains.
+
+    Based on a given corpus, the Markov Chain generates a sequence based on
+    how likely two "things" are to appear together.
+
+    Usage::
+
+        >>> mc = MarkovChain()
+
+        >>> mc.train(["big", "seq", "of", "prepped", "words"])
+
+        >>> mc.generate(length=4)
+        ["big", "words", "of", "seq"]
+
+        >>> mc.generate_sentence()
+        "Of words of big seq?"
+
+    """
+
     def __init__(self):
         self._matrix = matrix.SparseMatrix()
 
@@ -23,6 +43,16 @@ class MarkovChain:
         return len(self._matrix)
 
     def train(self, seq):
+        """
+        Trains the Markov Chain against a corpus.
+
+        Can only be called once against the full dataset. If your dataset
+        grows/changes, you need to re-train.
+
+        Args:
+            seq (iterable): A training list of (prepared) words/states from the Real
+                World(tm).
+        """
         last_state = None
         total_count = len(seq)
         incr_by = 1 / (total_count - 1)
@@ -41,12 +71,29 @@ class MarkovChain:
             last_state = current_state
 
     def random_state(self):
+        """
+        Selects a random state from the trained options.
+
+        Returns:
+            str: The name of the random state.
+        """
         return random.choice(self._matrix.names)
 
     def _get_state_offset(self, state):
         return self._matrix.x_offset(state)
 
     def create_transition_choices(self, transitions):
+        """
+        Given a set of known transitions, creates a list of randomized choices
+        with representative likelihoods.
+
+        Args:
+            transitions (list): A sparse list of transitions/percentages.
+
+        Returns:
+            list: A large, representative list of all the state (offsets) in
+                randomized order.
+        """
         choices = []
         magnitude = len(self)
 
@@ -59,6 +106,18 @@ class MarkovChain:
         return choices
 
     def generate(self, length=8, start_state=None):
+        """
+        Selects a series of choices based on probability/chance, with each
+        building on the previous selection.
+
+        Args:
+            length (int): The number of choices to generate. Default is `8`.
+            start_state (str): [Optional] The first choice to begin the selections
+                with.
+
+        Returns:
+            list: The generated Markov chain.
+        """
         states = []
         last_state = None
 
@@ -81,12 +140,36 @@ class MarkovChain:
         return states
 
     def generate_sentence(self, min_length=5, max_length=10):
+        """
+        Attempts to create an English-like sentence from the generated Markov Chain.
+
+        Will generate a chain of random length (between the provided `min_length`
+        & `max_length`), as well as capitalizing the sentence, & adding random
+        punctuation.
+
+        Args:
+            min_length (int): [Optional] The fewest number of choices in the chain.
+                Default is `5`.
+            max_length (int): [Optional] The most number of choices in the chain.
+                Default is `10`.
+
+        Returns:
+            str: A vaguely English-like collection of words emulating a sentence.
+        """
         ending_punct = [".", "!", "?"]
         words = self.generate(length=random.randint(min_length, max_length + 1))
         sentence = " ".join(words) + random.choice(ending_punct)
         return sentence.capitalize()
 
     def to_csv(self, filename):
+        """
+        Exports the trained model to a (verbose) CSV file.
+
+        Warning: On big models/training sets, this can get very large.
+
+        Args:
+            filename (str): The filename to write the CSV data to.
+        """
         with open(filename, "w") as raw_file:
             writer = csv.writer(raw_file)
             writer.writerow([""] + [state for state in self._matrix.names])
@@ -96,6 +179,14 @@ class MarkovChain:
 
     @classmethod
     def from_csv(cls, filename):
+        """
+        Imports the trained model from a (verbose) CSV file.
+
+        Warning: On big models/training sets, this can get very large.
+
+        Args:
+            filename (str): The filename to read the CSV data from.
+        """
         mc = cls()
 
         with open(filename, "r") as raw_file:
@@ -117,6 +208,12 @@ class MarkovChain:
         return mc
 
     def to_json(self, filename):
+        """
+        Exports the trained model to a (sparse) JSON file.
+
+        Args:
+            filename (str): The filename to write the JSON data to.
+        """
         with open(filename, "w") as raw_file:
             to_write = copy.deepcopy(self._matrix._data)
             to_write["__attain_headers__"] = copy.copy(self._matrix._names)
@@ -124,6 +221,12 @@ class MarkovChain:
 
     @classmethod
     def from_json(cls, filename):
+        """
+        Imports the trained model from a (sparse) JSON file.
+
+        Args:
+            filename (str): The filename to read the JSON data from.
+        """
         mc = cls()
 
         with open(filename, "r") as raw_file:
