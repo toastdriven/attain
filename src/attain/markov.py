@@ -1,4 +1,6 @@
+import copy
 import csv
+import json
 import random
 
 from . import matrix
@@ -19,35 +21,6 @@ class MarkovChain:
 
     def __len__(self):
         return len(self._matrix)
-
-    def to_csv(self, filename):
-        with open(filename, "w") as raw_file:
-            writer = csv.writer(raw_file)
-            writer.writerow([""] + [state for state in self._matrix.names])
-
-            for state in self._matrix.names:
-                writer.writerow([state] + self._matrix.get_row(state))
-
-    @classmethod
-    def from_csv(cls, filename):
-        mc = cls()
-
-        with open(filename, "r") as raw_file:
-            reader = csv.reader(raw_file)
-            headers = next(reader)
-            # Skip the blank space in the top-left.
-            names = headers[1:]
-
-            for row in reader:
-                y_name = row[0]
-
-                for offset, value in enumerate(row[1:]):
-                    value = float(value)
-
-                    if value != mc._matrix._default:
-                        mc._matrix.set(names[offset], y_name, value)
-
-        return mc
 
     def train(self, seq):
         last_state = None
@@ -112,3 +85,55 @@ class MarkovChain:
         words = self.generate(length=random.randint(min_length, max_length + 1))
         sentence = " ".join(words) + random.choice(ending_punct)
         return sentence.capitalize()
+
+    def to_csv(self, filename):
+        with open(filename, "w") as raw_file:
+            writer = csv.writer(raw_file)
+            writer.writerow([""] + [state for state in self._matrix.names])
+
+            for state in self._matrix.names:
+                writer.writerow([state] + self._matrix.get_row(state))
+
+    @classmethod
+    def from_csv(cls, filename):
+        mc = cls()
+
+        with open(filename, "r") as raw_file:
+            reader = csv.reader(raw_file)
+            headers = next(reader)
+            # Skip the blank space in the top-left.
+            mc._matrix._names = headers[1:]
+
+            for row in reader:
+                y_name = row[0]
+
+                for offset, value in enumerate(row[1:]):
+                    x_name = mc._matrix._names[offset]
+                    value = float(value)
+
+                    if value != mc._matrix._default:
+                        mc._matrix.set(x_name, y_name, value)
+
+        return mc
+
+    def to_json(self, filename):
+        with open(filename, "w") as raw_file:
+            to_write = copy.deepcopy(self._matrix._data)
+            to_write["__attain_headers__"] = copy.copy(self._matrix._names)
+            json.dump(to_write, raw_file)
+
+    @classmethod
+    def from_json(cls, filename):
+        mc = cls()
+
+        with open(filename, "r") as raw_file:
+            to_read = json.load(raw_file)
+            mc._matrix._names = to_read.pop("__attain_headers__")
+
+            for y_name, row_data in to_read.items():
+                mc._matrix._data.setdefault(y_name, {})
+
+                for key, values in row_data.items():
+                    mc._matrix._data[y_name][int(key)] = values
+
+        return mc
