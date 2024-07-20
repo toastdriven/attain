@@ -1,0 +1,67 @@
+[project]
+name = "attain"
+version = "1.0.0-alpha"
+description = "A little Markov Chain library."
+authors = [
+    {name = "Daniel Lindsley", email = "daniel@toastdriven.com"},
+]
+license = {text = "BSD-3-Clause"}
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+keywords = [
+    "markov",
+    "stochastic",
+    "simulation",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Repository = "https://github.com/toastdriven/attain.git"
+Homepage = "https://github.com/toastdriven/attain"
+Issues = "https://github.com/toastdriven/attain/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["attain*"]
+# exclude = ["tests*"]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+
+[tool.pyright]
+include = ["src"]
+exclude = [
+    "**/.pytest_cache",
+    "**/__pycache__",
+]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+ignore = []
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[build-system]
+requires = [
+    "setuptools",
+    "setuptools-scm",
+]
+build-backend = "setuptools.build_meta"

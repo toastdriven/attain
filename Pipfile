@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+
+[dev-packages]
+attain = {file = ".", editable = true}
+build = "*"
+twine = "*"
+pytest = "*"
+Sphinx = "*"
+
+[requires]
+python_version = "3.11"
