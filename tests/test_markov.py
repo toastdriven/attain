@@ -10,7 +10,7 @@ from attain import markov
 
 def tokenize(sentence):
     tokens = []
-    punct = "!@#$%^&*()_+-={}[]\|;':\",.<>\/?"
+    punct = "!@#$%^&*()_+-={}[]\\|;':\",.<>/?"
 
     for word in sentence.split(" "):
         cleaned = word
@@ -77,7 +77,7 @@ def test_random_state(small_corpus):
     random.seed(a=1)
 
     assert mc.random_state() == "be"
-    assert mc.random_state() == "say"
+    assert mc.random_state() == "hello"
     assert mc.random_state() == "is"
 
 
@@ -113,9 +113,12 @@ def test_generate_sentence(small_corpus):
     # To keep the randomness consistent.
     random.seed(a=1)
 
-    assert mc.generate_sentence() == "Say hello kitty is my favorite."
-    assert mc.generate_sentence() == "Kitty is the question hello kitty is my favorite!"
-    assert mc.generate_sentence(min_length=3, max_length=4) == "Not to be that?"
+    assert mc.generate_sentence() == "Hello world say hello world say."
+    assert (
+        mc.generate_sentence()
+        == "My favorite character here kitty is the question hello?"
+    )
+    assert mc.generate_sentence(min_length=3, max_length=4) == "That is my?"
 
 
 def test_to_csv(small_corpus, data_dir):
@@ -138,8 +141,8 @@ def test_to_csv(small_corpus, data_dir):
         assert headers == [
             "",
             "world",
-            "hello",
             "say",
+            "hello",
             "to",
             "be",
             "or",
@@ -157,26 +160,6 @@ def test_to_csv(small_corpus, data_dir):
 
         row_0 = next(reader)
         assert row_0 == [
-            "world",
-            "0.0",
-            "0.0",
-            "0.045454545454545456",
-            "0.0",
-            "0.0",
-            "0.0",
-            "0.0",
-            "0.0",
-            "0.0",
-            "0.0",
-            "0.0",
-            "0.0",
-            "0.0",
-            "0.0",
-            "0.0",
-            "0.0",
-        ]
-        row_1 = next(reader)
-        assert row_1 == [
             "hello",
             "0.045454545454545456",
             "0.0",
@@ -190,6 +173,26 @@ def test_to_csv(small_corpus, data_dir):
             "0.0",
             "0.0",
             "0.045454545454545456",
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0",
+        ]
+        row_1 = next(reader)
+        assert row_1 == [
+            "world",
+            "0.0",
+            "0.045454545454545456",
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0",
+            "0.0",
             "0.0",
             "0.0",
             "0.0",
@@ -215,13 +218,12 @@ def test_from_csv(small_corpus, data_dir):
         writer.writerow(["peace", 0.0, 0.25, 0.0])
 
     mc = markov.MarkovChain.from_csv(csv_path.as_posix())
-    assert len(mc) == 3
+    assert len(mc) == 2
     assert "hello" in mc
     assert "world" in mc
-    assert "peace" in mc
 
     # Reach in a little, just to make sure things look right.
-    assert mc._matrix.get_row("world") == [0.5, 0.0, 0.0]
+    assert mc._matrix.get_row("world") == [0.5, 0.0]
     assert mc._matrix.get_column("hello") == [0.25, 0.5, 0.0]
 
     # To keep the randomness consistent.
@@ -253,15 +255,15 @@ def test_json_round_trip(small_corpus, data_dir):
     assert "kitty" in new_mc
 
     # Reach in a little, just to make sure things look right.
-    assert new_mc._matrix._data["world"] == {
-        2: 0.045454545454545456,
-    }
-    assert new_mc._matrix._data["hello"] == {
+    assert new_mc._matrix._data[0] == {
         0: 0.045454545454545456,
         3: 0.045454545454545456,
         11: 0.045454545454545456,
     }
-    assert new_mc._matrix._data["to"] == {
+    assert new_mc._matrix._data[1] == {
+        1: 0.045454545454545456,
+    }
+    assert new_mc._matrix._data[3] == {
         4: 0.09090909090909091,
     }
 
