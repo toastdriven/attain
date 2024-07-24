@@ -77,7 +77,7 @@ class MarkovChain:
         Returns:
             str: The name of the random state.
         """
-        return random.choice(self._matrix.names)
+        return random.choice([label for label in self._matrix._x_labels.keys()])
 
     def _get_state_offset(self, state):
         return self._matrix.x_offset(state)
@@ -88,7 +88,7 @@ class MarkovChain:
         with representative likelihoods.
 
         Args:
-            transitions (list): A sparse list of transitions/percentages.
+            transitions (dict): A sparse dict of transitions/percentages.
 
         Returns:
             list: A large, representative list of all the state (offsets) in
@@ -97,9 +97,9 @@ class MarkovChain:
         choices = []
         magnitude = len(self)
 
-        for offset, transition in enumerate(transitions):
+        for state, transition in transitions.items():
             count_to_insert = int(transition * magnitude * 100)
-            to_insert = offset
+            to_insert = state
             choices.extend([to_insert for _ in range(count_to_insert)])
 
         random.shuffle(choices)
@@ -126,14 +126,20 @@ class MarkovChain:
             last_state = states[0]
 
         for _ in range(length - 1):
-            choices = self.create_transition_choices(self._matrix.get_row(last_state))
+            row_data = self._matrix.get_sparse_row(last_state)
+            retries = 0
 
-            while len(choices) <= 0:
-                choices = self.create_transition_choices(
-                    self._matrix.get_row(self.random_state())
-                )
+            while len(row_data) <= 0 and retries < 10:
+                row_data = self._matrix.get_sparse_row(self.random_state())
+                retries += 1
 
-            choice = self._matrix.names[random.choice(choices)]
+            # If we hit the retry limit & still couldn't find a row w/ transitions,
+            # bail out.
+            if not row_data:
+                return states
+
+            choices = self.create_transition_choices(row_data)
+            choice = random.choice(choices)
             states.append(choice)
             last_state = choice
 
@@ -172,9 +178,9 @@ class MarkovChain:
         """
         with open(filename, "w") as raw_file:
             writer = csv.writer(raw_file)
-            writer.writerow([""] + [state for state in self._matrix.names])
+            writer.writerow([""] + [state for state in self._matrix.x_labels_in_order])
 
-            for state in self._matrix.names:
+            for state in self._matrix.y_labels_in_order:
                 writer.writerow([state] + self._matrix.get_row(state))
 
     @classmethod
@@ -193,13 +199,13 @@ class MarkovChain:
             reader = csv.reader(raw_file)
             headers = next(reader)
             # Skip the blank space in the top-left.
-            mc._matrix._names = headers[1:]
+            headers = headers[1:]
 
             for row in reader:
                 y_name = row[0]
 
                 for offset, value in enumerate(row[1:]):
-                    x_name = mc._matrix._names[offset]
+                    x_name = headers[offset]
                     value = float(value)
 
                     if value != mc._matrix._default:
@@ -216,7 +222,8 @@ class MarkovChain:
         """
         with open(filename, "w") as raw_file:
             to_write = copy.deepcopy(self._matrix._data)
-            to_write["__attain_headers__"] = copy.copy(self._matrix._names)
+            to_write["__attain_x_labels__"] = copy.deepcopy(self._matrix._x_labels)
+            to_write["__attain_y_labels__"] = copy.deepcopy(self._matrix._y_labels)
             json.dump(to_write, raw_file)
 
     @classmethod
@@ -231,12 +238,14 @@ class MarkovChain:
 
         with open(filename, "r") as raw_file:
             to_read = json.load(raw_file)
-            mc._matrix._names = to_read.pop("__attain_headers__")
+            mc._matrix._x_labels = to_read.pop("__attain_x_labels__", [])
+            mc._matrix._y_labels = to_read.pop("__attain_y_labels__", [])
 
-            for y_name, row_data in to_read.items():
-                mc._matrix._data.setdefault(y_name, {})
+            # We need to convert all the keys from strings to ints.
+            for y_offset, row_data in to_read.items():
+                mc._matrix._data.setdefault(int(y_offset), {})
 
-                for key, values in row_data.items():
-                    mc._matrix._data[y_name][int(key)] = values
+                for x_offset, value in row_data.items():
+                    mc._matrix._data[int(y_offset)][int(x_offset)] = value
 
         return mc
